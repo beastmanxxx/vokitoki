@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoiceTok - Real-time Audio Sharing</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="VoiceTok">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="msapplication-TileColor" content="#667eea">
+    <meta name="msapplication-tap-highlight" content="no">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" href="/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="167x167" href="/icon-152x152.png">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/icon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/icon-16x16.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 2.5rem;
+            font-weight: bold;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            margin: 5px;
+            min-width: 120px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, #6c757d, #495057);
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #dc3545, #c82333);
+        }
+
+        .room-info {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 4px solid #667eea;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin: 10px 0;
+        }
+
+        .status.connected {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status.connecting {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .audio-controls {
+            margin: 20px 0;
+        }
+
+        .volume-slider {
+            width: 100%;
+            margin: 10px 0;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .user-list {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            text-align: left;
+        }
+
+        .user-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .user-item:last-child {
+            border-bottom: none;
+        }
+
+        .creator-badge {
+            background: #667eea;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .listener-badge {
+            background: #28a745;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border-left: 4px solid #dc3545;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border-left: 4px solid #28a745;
+        }
+
+        .share-buttons {
+            margin: 15px 0;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .share-status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .share-status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .share-status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .install-prompt {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            text-align: center;
+            display: none;
+        }
+
+        .install-prompt button {
+            background: white;
+            color: #28a745;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            margin: 5px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .install-prompt button:hover {
+            background: #f8f9fa;
+        }
+
+        .pwa-features {
+            background: #e3f2fd;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            border-left: 4px solid #2196f3;
+        }
+
+        .pwa-features h4 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+
+        .pwa-features ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .pwa-features li {
+            margin: 5px 0;
+            color: #424242;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">VoiceTok</div>
+        <div class="subtitle">Real-time Audio Sharing Platform</div>
+
+        <!-- Login Form -->
+        <div id="loginForm">
+            <div class="form-group">
+                <label for="username">Username:</label>
+                <input type="text" id="username" placeholder="Enter your username" required>
+            </div>
+            <div class="form-group">
+                <label for="roomCode">Room Code (optional):</label>
+                <input type="text" id="roomCode" placeholder="Enter room code to join">
+            </div>
+            <button class="btn" onclick="createRoom()">Create Room</button>
+            <button class="btn btn-secondary" onclick="joinRoom()">Join Room</button>
+        </div>
+
+        <!-- Room Interface -->
+        <div id="roomInterface" class="hidden">
+            <div class="room-info">
+                <h3>Room: <span id="roomCodeDisplay"></span></h3>
+                <div class="status" id="connectionStatus">Connecting...</div>
+                <p>Share this room with others to let them join!</p>
+                <div class="share-buttons">
+                    <button class="btn btn-secondary" onclick="shareRoom()">
+                        📤 Share Room Link
+                    </button>
+                    <button class="btn" onclick="copyRoomLink()">
+                        📋 Copy Link
+                    </button>
+                </div>
+                <div id="shareStatus" class="share-status"></div>
+            </div>
+
+            <div class="user-list">
+                <h4>Connected Users:</h4>
+                <div id="userList"></div>
+            </div>
+
+                    <div id="creatorControls" class="hidden">
+            <h4>You are the Room Creator</h4>
+            <div class="audio-controls">
+                <button class="btn" id="startAudioBtn" onclick="startAudio()">Start Speaking</button>
+                <button class="btn btn-danger" id="stopAudioBtn" onclick="stopAudio()" style="display: none;">Stop Speaking</button>
+            </div>
+            <div class="status" id="audioStatus">Audio not started</div>
+            <div class="room-info" style="margin-top: 15px;">
+                <p><strong>Room Control:</strong> When you leave, all listeners will be disconnected.</p>
+                <p><strong>Persistent Room:</strong> Listeners stay connected even if they close the app.</p>
+            </div>
+        </div>
+
+                    <div id="listenerControls" class="hidden">
+            <h4>You are a Listener</h4>
+            <div class="audio-controls">
+                <label for="volumeSlider">Volume:</label>
+                <input type="range" id="volumeSlider" class="volume-slider" min="0" max="1" step="0.1" value="0.5">
+            </div>
+            <div class="status" id="listenerStatus">Connected to room...</div>
+            <div class="room-info" style="margin-top: 15px;">
+                <p><strong>Lifetime Connection:</strong> You will stay connected until the room creator leaves.</p>
+                <p><strong>Background Audio:</strong> Audio continues even when you close the website!</p>
+                <p><strong>Auto-reconnect:</strong> You'll automatically reconnect and play missed audio when you reopen.</p>
+                <p><strong>Notifications:</strong> Get notified when new audio arrives while the app is closed.</p>
+            </div>
+        </div>
+
+            <button class="btn btn-danger" onclick="leaveRoom()">Leave Room</button>
+        </div>
+
+        <div id="messageArea"></div>
+        
+        <!-- Install Prompt -->
+        <div id="installPrompt" class="install-prompt">
+            <h4>🚀 Install VoiceTok App</h4>
+            <p>Get the best experience with our app! Install it on your device for lifetime audio connections.</p>
+            <button onclick="installApp()">📱 Install App</button>
+            <button onclick="dismissInstallPrompt()">Maybe Later</button>
+        </div>
+
+        <!-- PWA Features Info -->
+        <div class="pwa-features">
+            <h4>🌟 App Features</h4>
+            <ul>
+                <li><strong>Lifetime Connections:</strong> Stay connected to audio rooms forever</li>
+                <li><strong>Background Audio:</strong> Continue listening even when app is closed</li>
+                <li><strong>Push Notifications:</strong> Get notified when new audio arrives</li>
+                <li><strong>Offline Support:</strong> Works without internet connection</li>
+                <li><strong>App-like Experience:</strong> Full-screen, no browser UI</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
+
+    <!-- Service Worker Registration -->
+    <script>
+        // Register Service Worker for background audio
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then(registration => {
+                    console.log('Service Worker registered:', registration);
+                    
+                    // Request notification permission
+                    if ('Notification' in window) {
+                        Notification.requestPermission();
+                    }
+                })
+                .catch(error => {
+                    console.log('Service Worker registration failed:', error);
+                });
+        }
+    </script>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyB6Ij4zCmf0zipOovMguHg2dyaSpFAteI8",
+            authDomain: "meeting-app-b9dcd.firebaseapp.com",
+            projectId: "meeting-app-b9dcd",
+            storageBucket: "meeting-app-b9dcd.firebasestorage.app",
+            messagingSenderId: "345145995987",
+            appId: "1:345145995987:web:dd9e6f92055d177a179a26"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // App state
+        let currentUser = null;
+        let currentRoom = null;
+        let isCreator = false;
+        let mediaStream = null;
+        let audioContext = null;
+        let audioDestination = null;
+        let audioSource = null;
+        let isSpeaking = false;
+        let serviceWorkerRegistration = null;
+        let backgroundAudioQueue = [];
+        let deferredPrompt = null;
+
+        // Check for existing session
+        window.addEventListener('load', async () => {
+            // Initialize service worker
+            if ('serviceWorker' in navigator) {
+                serviceWorkerRegistration = await navigator.serviceWorker.ready;
+            }
+
+            // Check for PWA install prompt
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                showInstallPrompt();
+            });
+
+            // Check if app is already installed
+            if (window.matchMedia('(display-mode: standalone)').matches) {
+                console.log('App is running in standalone mode');
+            }
+
+            // Handle URL parameters for room joining
+            const urlParams = new URLSearchParams(window.location.search);
+            const roomCode = urlParams.get('room');
+            const action = urlParams.get('action');
+
+            if (roomCode) {
+                // Auto-join room from shared link
+                document.getElementById('roomCode').value = roomCode;
+                showMessage(`Room ${roomCode} detected! Enter your username to join.`, 'success');
+            }
+
+            const savedSession = localStorage.getItem('voiceTokSession');
+            if (savedSession) {
+                const session = JSON.parse(savedSession);
+                currentUser = session.username;
+                currentRoom = session.roomCode;
+                isCreator = session.isCreator;
+                
+                document.getElementById('username').value = currentUser;
+                document.getElementById('roomCode').value = currentRoom;
+                
+                // Auto-reconnect - listeners stay connected forever
+                setTimeout(() => {
+                    if (isCreator) {
+                        createRoom();
+                    } else {
+                        // For listeners, check if room still exists
+                        database.ref(`rooms/${currentRoom}`).once('value')
+                            .then((snapshot) => {
+                                if (snapshot.exists()) {
+                                    joinRoom();
+                                    // Play any queued audio from background
+                                    playQueuedAudio();
+                                } else {
+                                    showMessage('Room no longer exists. Please join a new room.', 'error');
+                                    localStorage.removeItem('voiceTokSession');
+                                }
+                            });
+                    }
+                }, 1000);
+            }
+        });
+
+        function showMessage(message, type = 'success') {
+            const messageArea = document.getElementById('messageArea');
+            messageArea.innerHTML = `<div class="${type}">${message}</div>`;
+            setTimeout(() => {
+                messageArea.innerHTML = '';
+            }, 5000);
+        }
+
+        function updateConnectionStatus(status, text) {
+            const statusElement = document.getElementById('connectionStatus');
+            statusElement.className = `status ${status}`;
+            statusElement.innerHTML = text;
+        }
+
+        function updateUserList(users) {
+            const userList = document.getElementById('userList');
+            userList.innerHTML = '';
+            
+            Object.keys(users).forEach(userId => {
+                const user = users[userId];
+                const userItem = document.createElement('div');
+                userItem.className = 'user-item';
+                
+                const badge = user.isCreator ? 
+                    '<span class="creator-badge">Creator</span>' : 
+                    '<span class="listener-badge">Listener</span>';
+                
+                userItem.innerHTML = `
+                    <span>${user.username}</span>
+                    ${badge}
+                `;
+                userList.appendChild(userItem);
+            });
+        }
+
+        function createRoom() {
+            const username = document.getElementById('username').value.trim();
+            if (!username) {
+                showMessage('Please enter a username', 'error');
+                return;
+            }
+
+            currentUser = username;
+            const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+            currentRoom = roomCode;
+            isCreator = true;
+
+            // Save session
+            localStorage.setItem('voiceTokSession', JSON.stringify({
+                username: currentUser,
+                roomCode: currentRoom,
+                isCreator: true
+            }));
+
+            showRoomInterface();
+            connectToRoom();
+        }
+
+        function joinRoom() {
+            const username = document.getElementById('username').value.trim();
+            const roomCode = document.getElementById('roomCode').value.trim();
+            
+            if (!username) {
+                showMessage('Please enter a username', 'error');
+                return;
+            }
+            
+            if (!roomCode) {
+                showMessage('Please enter a room code', 'error');
+                return;
+            }
+
+            currentUser = username;
+            currentRoom = roomCode;
+            isCreator = false;
+
+            // Save session
+            localStorage.setItem('voiceTokSession', JSON.stringify({
+                username: currentUser,
+                roomCode: currentRoom,
+                isCreator: false
+            }));
+
+            showRoomInterface();
+            connectToRoom();
+        }
+
+        function showRoomInterface() {
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('roomInterface').classList.remove('hidden');
+            document.getElementById('roomCodeDisplay').textContent = currentRoom;
+            
+            if (isCreator) {
+                document.getElementById('creatorControls').classList.remove('hidden');
+            } else {
+                document.getElementById('listenerControls').classList.remove('hidden');
+            }
+        }
+
+        function connectToRoom() {
+            updateConnectionStatus('connecting', '<span class="loading"></span>Connecting...');
+            
+            const roomRef = database.ref(`rooms/${currentRoom}`);
+            const userRef = roomRef.child('users').child(currentUser);
+            
+                    // Set user data
+        userRef.set({
+            username: currentUser,
+            isCreator: isCreator,
+            joinedAt: Date.now(),
+            isOnline: true
+        });
+
+        // If creator, also set creator data
+        if (isCreator) {
+            roomRef.child('creator').set({
+                username: currentUser,
+                isOnline: true,
+                lastSeen: Date.now()
+            });
+        }
+
+                    // Listen for room changes
+        roomRef.on('value', (snapshot) => {
+            const roomData = snapshot.val();
+            if (roomData) {
+                updateUserList(roomData.users || {});
+                updateConnectionStatus('connected', 'Connected');
+                
+                // Update creator status for listeners
+                if (!isCreator && roomData.creator) {
+                    document.getElementById('listenerStatus').textContent = 
+                        `Connected to ${roomData.creator.username}'s room`;
+                }
+            } else {
+                // Room was deleted
+                if (!isCreator) {
+                    showMessage('Room has been closed by the creator.', 'error');
+                    setTimeout(() => {
+                        leaveRoom();
+                    }, 2000);
+                }
+            }
+        });
+
+            // Listen for audio data (if listener)
+            if (!isCreator) {
+                roomRef.child('audioData').on('value', (snapshot) => {
+                    const audioData = snapshot.val();
+                    if (audioData && audioData.isActive) {
+                        if (document.hidden) {
+                            // App is in background, queue audio for later
+                            queueAudioForBackground(audioData.audioBlob);
+                        } else {
+                            // App is active, play immediately
+                            playAudio(audioData.audioBlob);
+                        }
+                    }
+                });
+            }
+
+                    // Listen for creator disconnect
+        roomRef.child('creator').on('value', (snapshot) => {
+            const creatorData = snapshot.val();
+            if (!creatorData || !creatorData.isOnline) {
+                // Creator left the room
+                showMessage('Room creator has left. You will be disconnected.', 'error');
+                setTimeout(() => {
+                    leaveRoom();
+                }, 3000);
+            }
+        });
+
+        // Handle user disconnect - only for creator
+        if (isCreator) {
+            window.addEventListener('beforeunload', () => {
+                userRef.update({ isOnline: false });
+            });
+
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    userRef.update({ isOnline: false });
+                    // Start background sync for listeners
+                    if (!isCreator && serviceWorkerRegistration) {
+                        serviceWorkerRegistration.sync.register('background-audio-sync');
+                    }
+                } else {
+                    userRef.update({ isOnline: true });
+                    // Play any queued audio when coming back to foreground
+                    if (!isCreator) {
+                        playQueuedAudio();
+                    }
+                }
+            });
+        }
+        }
+
+        async function startAudio() {
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                audioDestination = audioContext.createMediaStreamDestination();
+                audioSource = audioContext.createMediaStreamSource(mediaStream);
+                audioSource.connect(audioDestination);
+
+                isSpeaking = true;
+                document.getElementById('startAudioBtn').style.display = 'none';
+                document.getElementById('stopAudioBtn').style.display = 'inline-block';
+                document.getElementById('audioStatus').textContent = 'Speaking...';
+                document.getElementById('audioStatus').className = 'status connected';
+
+                // Start recording and broadcasting
+                startBroadcasting();
+                
+                showMessage('Audio started successfully!');
+            } catch (error) {
+                showMessage('Error accessing microphone: ' + error.message, 'error');
+            }
+        }
+
+        function stopAudio() {
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+            }
+            
+            if (audioContext) {
+                audioContext.close();
+            }
+
+            isSpeaking = false;
+            document.getElementById('startAudioBtn').style.display = 'inline-block';
+            document.getElementById('stopAudioBtn').style.display = 'none';
+            document.getElementById('audioStatus').textContent = 'Audio stopped';
+            document.getElementById('audioStatus').className = 'status disconnected';
+
+            // Stop broadcasting
+            database.ref(`rooms/${currentRoom}/audioData`).remove();
+            
+            showMessage('Audio stopped');
+        }
+
+        function startBroadcasting() {
+            if (!isSpeaking) return;
+
+            const mediaRecorder = new MediaRecorder(mediaStream);
+            const chunks = [];
+
+            mediaRecorder.ondataavailable = (event) => {
+                chunks.push(event.data);
+            };
+
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(chunks, { type: 'audio/webm' });
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const audioData = reader.result;
+                    database.ref(`rooms/${currentRoom}/audioData`).set({
+                        audioBlob: audioData,
+                        isActive: true,
+                        timestamp: Date.now()
+                    });
+                };
+                reader.readAsDataURL(blob);
+            };
+
+            mediaRecorder.start(1000); // Record in 1-second chunks
+
+            // Continue broadcasting
+            setTimeout(() => {
+                if (isSpeaking) {
+                    mediaRecorder.stop();
+                    startBroadcasting();
+                }
+            }, 1000);
+        }
+
+        function playAudio(audioBlob) {
+            const audio = new Audio(audioBlob);
+            audio.volume = document.getElementById('volumeSlider').value;
+            audio.play().catch(error => {
+                console.log('Error playing audio:', error);
+            });
+        }
+
+        function playQueuedAudio() {
+            // Play any audio that was received while the app was closed
+            const queuedAudio = localStorage.getItem('voiceTokQueuedAudio');
+            if (queuedAudio) {
+                try {
+                    const audioData = JSON.parse(queuedAudio);
+                    audioData.forEach(audioBlob => {
+                        playAudio(audioBlob);
+                    });
+                    showMessage('Playing audio received while you were away!', 'success');
+                    localStorage.removeItem('voiceTokQueuedAudio');
+                } catch (error) {
+                    console.error('Error playing queued audio:', error);
+                }
+            }
+        }
+
+        function queueAudioForBackground(audioBlob) {
+            // Store audio for when user reopens the app
+            const queuedAudio = localStorage.getItem('voiceTokQueuedAudio');
+            let audioArray = [];
+            
+            if (queuedAudio) {
+                try {
+                    audioArray = JSON.parse(queuedAudio);
+                } catch (error) {
+                    audioArray = [];
+                }
+            }
+            
+            // Keep only last 10 audio chunks to avoid storage overflow
+            audioArray.push(audioBlob);
+            if (audioArray.length > 10) {
+                audioArray = audioArray.slice(-10);
+            }
+            
+            localStorage.setItem('voiceTokQueuedAudio', JSON.stringify(audioArray));
+            
+            // Show notification if app is in background
+            if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
+                new Notification('VoiceTok', {
+                    body: 'New audio from room creator!',
+                    icon: '/icon-192x192.png',
+                    tag: 'voiceTok-audio'
+                });
+            }
+        }
+
+        function leaveRoom() {
+            if (isSpeaking) {
+                stopAudio();
+            }
+
+            if (currentRoom && currentUser) {
+                if (isCreator) {
+                    // If creator leaves, remove entire room and disconnect all users
+                    database.ref(`rooms/${currentRoom}`).remove();
+                    showMessage('Room closed. All users will be disconnected.', 'error');
+                } else {
+                    // If listener leaves, just remove themselves
+                    database.ref(`rooms/${currentRoom}/users/${currentUser}`).remove();
+                }
+            }
+
+            // Clear session
+            localStorage.removeItem('voiceTokSession');
+
+            // Reset state
+            currentUser = null;
+            currentRoom = null;
+            isCreator = false;
+            mediaStream = null;
+            audioContext = null;
+            audioDestination = null;
+            audioSource = null;
+            isSpeaking = false;
+
+            // Show login form
+            document.getElementById('roomInterface').classList.add('hidden');
+            document.getElementById('loginForm').classList.remove('hidden');
+            document.getElementById('creatorControls').classList.add('hidden');
+            document.getElementById('listenerControls').classList.add('hidden');
+            document.getElementById('username').value = '';
+            document.getElementById('roomCode').value = '';
+
+            showMessage('Left room successfully');
+        }
+
+        // Volume control for listeners
+        document.getElementById('volumeSlider')?.addEventListener('input', (e) => {
+            // Volume will be applied to next audio playback
+        });
+
+        // Enter key support
+        document.getElementById('username').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                if (document.getElementById('roomCode').value.trim()) {
+                    joinRoom();
+                } else {
+                    createRoom();
+                }
+            }
+        });
+
+        document.getElementById('roomCode').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                joinRoom();
+            }
+        });
+
+        // PWA and Sharing Functions
+        function showInstallPrompt() {
+            const installPrompt = document.getElementById('installPrompt');
+            if (installPrompt && !localStorage.getItem('installPromptDismissed')) {
+                installPrompt.style.display = 'block';
+            }
+        }
+
+        function dismissInstallPrompt() {
+            const installPrompt = document.getElementById('installPrompt');
+            installPrompt.style.display = 'none';
+            localStorage.setItem('installPromptDismissed', 'true');
+        }
+
+        async function installApp() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    console.log('App installed successfully');
+                    showMessage('VoiceTok app installed successfully!', 'success');
+                }
+                deferredPrompt = null;
+            }
+            dismissInstallPrompt();
+        }
+
+        function shareRoom() {
+            const roomLink = `${window.location.origin}?room=${currentRoom}`;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Join my VoiceTok room!',
+                    text: `Join my audio room on VoiceTok! Room code: ${currentRoom}`,
+                    url: roomLink
+                }).then(() => {
+                    showShareStatus('Room shared successfully!', 'success');
+                }).catch((error) => {
+                    console.log('Error sharing:', error);
+                    copyRoomLink();
+                });
+            } else {
+                copyRoomLink();
+            }
+        }
+
+        function copyRoomLink() {
+            const roomLink = `${window.location.origin}?room=${currentRoom}`;
+            
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(roomLink).then(() => {
+                    showShareStatus('Room link copied to clipboard!', 'success');
+                }).catch(() => {
+                    fallbackCopyTextToClipboard(roomLink);
+                });
+            } else {
+                fallbackCopyTextToClipboard(roomLink);
+            }
+        }
+
+        function fallbackCopyTextToClipboard(text) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                showShareStatus('Room link copied to clipboard!', 'success');
+            } catch (err) {
+                showShareStatus('Failed to copy link. Please copy manually: ' + text, 'error');
+            }
+            
+            document.body.removeChild(textArea);
+        }
+
+        function showShareStatus(message, type) {
+            const shareStatus = document.getElementById('shareStatus');
+            shareStatus.textContent = message;
+            shareStatus.className = `share-status ${type}`;
+            shareStatus.style.display = 'block';
+            
+            setTimeout(() => {
+                shareStatus.style.display = 'none';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
