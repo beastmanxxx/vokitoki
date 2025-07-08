@@ -3,104 +3,122 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Screen Mirror Pro</title>
+  <title>Screen Mirror Pro - Multi Viewer</title>
   <style>
+    :root {
+      --bg: #ffffff;
+      --text: #111;
+      --primary: #ff6f00;
+      --secondary: #ffc107;
+    }
     body {
       margin: 0;
-      padding: 0;
-      background: radial-gradient(circle at top left, #1f1f1f, #0a0a0a);
-      color: #00ffd5;
       font-family: 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    header {
+      background: var(--primary);
+      color: #fff;
+      padding: 15px;
+      font-size: 1.6rem;
+      text-align: center;
+      box-shadow: 0 2px 10px #00000030;
+    }
+    .container {
+      flex: 1;
+      padding: 30px 20px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      text-align: center;
-      min-height: 100vh;
     }
-
-    h1 {
-      font-size: 2.5rem;
-      margin: 30px 0 10px;
-      color: #00ffd5;
-      text-shadow: 0 0 15px #00ffd5;
-    }
-
-    .container {
-      margin-top: 20px;
-      background: #111;
+    .card {
+      background: #fff;
+      border-radius: 20px;
       padding: 25px;
-      border-radius: 15px;
-      box-shadow: 0 0 25px #00ffd5a2;
-      width: 90%;
       max-width: 500px;
+      width: 100%;
+      box-shadow: 0 5px 20px #00000020;
+      text-align: center;
+      border: 2px solid var(--primary);
     }
-
-    button, input {
-      padding: 14px;
+    select, input, button {
+      margin: 10px 5px;
+      padding: 12px;
       font-size: 16px;
       border-radius: 10px;
-      border: none;
-      margin: 10px 5px;
       outline: none;
-    }
-
-    button {
-      background: #00ffd5;
-      color: #000;
-      font-weight: bold;
-      cursor: pointer;
-      transition: background 0.3s;
-    }
-
-    button:hover {
-      background: #0ff;
-    }
-
-    input {
-      width: 60%;
-      background: #1e1e1e;
-      color: #fff;
-      border: 2px solid #00ffd5;
-    }
-
-    video {
-      margin-top: 30px;
       width: 90%;
-      max-width: 1000px;
-      border: 3px solid #00ffd5;
-      border-radius: 15px;
-      box-shadow: 0 0 30px #00ffd5a1;
     }
-
-    .note {
-      font-size: 0.9em;
+    select, input {
+      background: #f8f8f8;
+      border: 2px solid var(--primary);
+    }
+    button {
+      background: var(--primary);
+      color: white;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background: var(--secondary);
+    }
+    video {
       margin-top: 20px;
-      color: #ccc;
+      width: 95%;
+      max-width: 1000px;
+      border-radius: 16px;
+      border: 4px solid var(--primary);
+      background: black;
+    }
+    #webcam {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 160px;
+      height: 100px;
+      border: 2px solid var(--secondary);
+      border-radius: 12px;
+      background: black;
+      z-index: 999;
+      display: none;
+      cursor: grab;
+    }
+    @media (max-width: 768px) {
+      #webcam {
+        width: 130px;
+        height: 90px;
+      }
     }
   </style>
 </head>
 <body>
-
-  <h1>🖥️ Screen Mirror Pro</h1>
+  <header>📡 Screen Mirror Pro (Multi Viewer)</header>
   <div class="container">
-    <div>
-      <button onclick="startSharing()">🎥 Start Sharing</button>
+    <div class="card">
+      <select id="shareMode">
+        <option value="screen">🖥️ Screen Only</option>
+        <option value="webcam">📷 Webcam Only</option>
+        <option value="both">🖥️ Screen + 📷 Webcam</option>
+      </select><br>
+      <input id="maxViewers" type="number" min="1" max="10" placeholder="Enter max viewers (e.g. 3)"/><br>
+      <button onclick="startSharing()">Start Sharing</button>
+      <hr>
+      <input type="text" id="roomId" placeholder="Enter Room ID to View">
+      <button onclick="startViewing()">Start Viewing</button>
     </div>
-    <div>
-      <input type="text" id="roomId" placeholder="Enter Room ID" />
-      <button onclick="startViewing()">📺 View Screen</button>
-    </div>
-    <div class="note">One person shares screen, others enter Room ID to view live</div>
+    <video id="mainVideo" autoplay playsinline controls muted></video>
+    <video id="webcam" autoplay playsinline muted></video>
   </div>
 
-  <video id="video" autoplay playsinline controls muted></video>
-
-  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 
   <script>
-    // 🔧 Replace with your Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyA4_iJe8ydNG-oGR0S_5ZxXrXtqXJ75_PY",
       authDomain: "screen-mirror-1b5a0.firebaseapp.com",
@@ -110,85 +128,151 @@
       messagingSenderId: "777804022393",
       appId: "1:777804022393:web:eccdb69bb0b7154d830aa8"
     };
-
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    const video = document.getElementById("video");
-    const servers = {
-      iceServers: [
-        { urls: "stun:stun.l.google.com:19302" }
-      ]
-    };
-    let pc;
+    const servers = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+    let sharerStreams = [];
+    const mainVideo = document.getElementById("mainVideo");
+    const webcamVideo = document.getElementById("webcam");
+    let viewerId = Math.random().toString(36).substring(2);
 
     async function startSharing() {
-      const roomId = prompt("Enter a Room ID to share:");
+      const roomId = prompt("Enter Room ID:");
+      const max = parseInt(document.getElementById("maxViewers").value) || 1;
       if (!roomId) return;
+      const roomRef = db.ref("rooms/" + roomId);
 
-      pc = new RTCPeerConnection(servers);
-      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
-      stream.getTracks().forEach(track => pc.addTrack(track, stream));
-      video.srcObject = stream;
+      const mode = document.getElementById("shareMode").value;
+      let screenStream, webcamStream, micStream;
+      let stream = new MediaStream();
 
-      const roomRef = db.ref('rooms/' + roomId);
-      pc.onicecandidate = e => {
-        if (e.candidate) {
-          roomRef.child("callerCandidates").push(JSON.stringify(e.candidate));
-        }
-      };
+      micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      micStream.getAudioTracks().forEach(track => stream.addTrack(track));
 
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      await roomRef.set({ offer: JSON.stringify(offer) });
+      if (mode === "screen") {
+        screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        screenStream.getTracks().forEach(track => stream.addTrack(track));
+        mainVideo.srcObject = screenStream;
+      } else if (mode === "webcam") {
+        webcamStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        webcamStream.getTracks().forEach(track => stream.addTrack(track));
+        mainVideo.srcObject = webcamStream;
+      } else if (mode === "both") {
+        screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        webcamStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        screenStream.getTracks().forEach(track => stream.addTrack(track));
+        webcamStream.getTracks().forEach(track => stream.addTrack(track));
+        mainVideo.srcObject = screenStream;
+        webcamVideo.srcObject = webcamStream;
+        webcamVideo.style.display = "block";
+        makeDraggable(webcamVideo);
+      }
 
-      roomRef.child("answer").on("value", async snapshot => {
-        const answer = snapshot.val();
-        if (answer && !pc.currentRemoteDescription) {
-          await pc.setRemoteDescription(new RTCSessionDescription(JSON.parse(answer)));
-        }
+      await roomRef.set({ active: true, maxViewers: max });
+
+      roomRef.child("viewers").on("child_added", async snapshot => {
+        const id = snapshot.key;
+        const peer = new RTCPeerConnection(servers);
+        sharerStreams.push(peer);
+        stream.getTracks().forEach(track => peer.addTrack(track, stream));
+
+        peer.onicecandidate = e => {
+          if (e.candidate) {
+            db.ref(`rooms/${roomId}/viewers/${id}/candidates`).push(JSON.stringify(e.candidate));
+          }
+        };
+
+        const offer = await peer.createOffer();
+        await peer.setLocalDescription(offer);
+        db.ref(`rooms/${roomId}/viewers/${id}/offer`).set(JSON.stringify(offer));
+
+        db.ref(`rooms/${roomId}/viewers/${id}/answer`).on("value", async snap => {
+          const answer = snap.val();
+          if (answer) {
+            await peer.setRemoteDescription(new RTCSessionDescription(JSON.parse(answer)));
+          }
+        });
       });
 
-      roomRef.child("viewerCandidates").on("child_added", async snapshot => {
-        const data = JSON.parse(snapshot.val());
-        await pc.addIceCandidate(new RTCIceCandidate(data));
-      });
-
-      alert("🔗 Room ID created: " + roomId + "\nShare it with others to let them view your screen.");
+      window.addEventListener("beforeunload", () => roomRef.remove());
     }
 
     async function startViewing() {
       const roomId = document.getElementById("roomId").value.trim();
-      if (!roomId) return alert("Enter a Room ID.");
+      if (!roomId) return alert("Enter valid Room ID");
+      const roomRef = db.ref("rooms/" + roomId);
+      const roomSnap = await roomRef.once("value");
+      if (!roomSnap.exists()) return alert("❌ Room not found");
 
-      pc = new RTCPeerConnection(servers);
-      const roomRef = db.ref('rooms/' + roomId);
+      const viewerRef = roomRef.child("viewers/" + viewerId);
+      await viewerRef.set({ ready: true });
+      viewerRef.onDisconnect().remove();
 
-      pc.ontrack = (event) => {
-        video.srcObject = event.streams[0];
+      const pc = new RTCPeerConnection(servers);
+      const stream1 = new MediaStream();
+      const stream2 = new MediaStream();
+      mainVideo.srcObject = stream1;
+      webcamVideo.srcObject = stream2;
+
+      pc.ontrack = e => {
+        e.streams[0].getTracks().forEach(track => {
+          if (track.kind === 'video' && stream1.getVideoTracks().length === 0) {
+            stream1.addTrack(track);
+          } else if (track.kind === 'video') {
+            stream2.addTrack(track);
+            webcamVideo.style.display = "block";
+            makeDraggable(webcamVideo);
+          } else {
+            stream1.addTrack(track);
+          }
+        });
       };
 
-      pc.onicecandidate = (e) => {
+      pc.onicecandidate = e => {
         if (e.candidate) {
-          roomRef.child("viewerCandidates").push(JSON.stringify(e.candidate));
+          viewerRef.child("candidates").push(JSON.stringify(e.candidate));
         }
       };
 
-      const snapshot = await roomRef.child("offer").once("value");
-      if (!snapshot.exists()) return alert("Room ID not found.");
-
-      const offer = JSON.parse(snapshot.val());
-      await pc.setRemoteDescription(new RTCSessionDescription(offer));
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-      await roomRef.child("answer").set(JSON.stringify(answer));
-
-      roomRef.child("callerCandidates").on("child_added", async snapshot => {
-        const data = JSON.parse(snapshot.val());
-        await pc.addIceCandidate(new RTCIceCandidate(data));
+      roomRef.on("value", snap => {
+        if (!snap.exists()) {
+          alert("Room ended by owner");
+          location.reload();
+        }
       });
 
-      alert("📺 Connected. You are now viewing the shared screen.");
+      viewerRef.child("offer").on("value", async snap => {
+        const offer = snap.val();
+        if (offer) {
+          await pc.setRemoteDescription(new RTCSessionDescription(JSON.parse(offer)));
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+          viewerRef.child("answer").set(JSON.stringify(answer));
+        }
+      });
+
+      viewerRef.child("candidates").on("child_added", async snap => {
+        const cand = JSON.parse(snap.val());
+        await pc.addIceCandidate(new RTCIceCandidate(cand));
+      });
+    }
+
+    function makeDraggable(el) {
+      let offsetX, offsetY, dragging = false;
+      el.onmousedown = e => {
+        dragging = true;
+        offsetX = e.clientX - el.offsetLeft;
+        offsetY = e.clientY - el.offsetTop;
+      };
+      document.onmousemove = e => {
+        if (!dragging) return;
+        el.style.left = e.clientX - offsetX + 'px';
+        el.style.top = e.clientY - offsetY + 'px';
+        el.style.right = 'auto';
+        el.style.bottom = 'auto';
+      };
+      document.onmouseup = () => dragging = false;
     }
   </script>
 </body>
