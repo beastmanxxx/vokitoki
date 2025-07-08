@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Screen Mirror Pro</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: radial-gradient(circle at top left, #1f1f1f, #0a0a0a);
+      color: #00ffd5;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      min-height: 100vh;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin: 30px 0 10px;
+      color: #00ffd5;
+      text-shadow: 0 0 15px #00ffd5;
+    }
+
+    .container {
+      margin-top: 20px;
+      background: #111;
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 0 25px #00ffd5a2;
+      width: 90%;
+      max-width: 500px;
+    }
+
+    button, input {
+      padding: 14px;
+      font-size: 16px;
+      border-radius: 10px;
+      border: none;
+      margin: 10px 5px;
+      outline: none;
+    }
+
+    button {
+      background: #00ffd5;
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #0ff;
+    }
+
+    input {
+      width: 60%;
+      background: #1e1e1e;
+      color: #fff;
+      border: 2px solid #00ffd5;
+    }
+
+    video {
+      margin-top: 30px;
+      width: 90%;
+      max-width: 1000px;
+      border: 3px solid #00ffd5;
+      border-radius: 15px;
+      box-shadow: 0 0 30px #00ffd5a1;
+    }
+
+    .note {
+      font-size: 0.9em;
+      margin-top: 20px;
+      color: #ccc;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🖥️ Screen Mirror Pro</h1>
+  <div class="container">
+    <div>
+      <button onclick="startSharing()">🎥 Start Sharing</button>
+    </div>
+    <div>
+      <input type="text" id="roomId" placeholder="Enter Room ID" />
+      <button onclick="startViewing()">📺 View Screen</button>
+    </div>
+    <div class="note">One person shares screen, others enter Room ID to view live</div>
+  </div>
+
+  <video id="video" autoplay playsinline controls muted></video>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+  <script>
+    // 🔧 Replace with your Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyA4_iJe8ydNG-oGR0S_5ZxXrXtqXJ75_PY",
+      authDomain: "screen-mirror-1b5a0.firebaseapp.com",
+      databaseURL: "https://screen-mirror-1b5a0-default-rtdb.firebaseio.com",
+      projectId: "screen-mirror-1b5a0",
+      storageBucket: "screen-mirror-1b5a0.appspot.com",
+      messagingSenderId: "777804022393",
+      appId: "1:777804022393:web:eccdb69bb0b7154d830aa8"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const video = document.getElementById("video");
+    const servers = {
+      iceServers: [
+        { urls: "stun:stun.l.google.com:19302" }
+      ]
+    };
+    let pc;
+
+    async function startSharing() {
+      const roomId = prompt("Enter a Room ID to share:");
+      if (!roomId) return;
+
+      pc = new RTCPeerConnection(servers);
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+      stream.getTracks().forEach(track => pc.addTrack(track, stream));
+      video.srcObject = stream;
+
+      const roomRef = db.ref('rooms/' + roomId);
+      pc.onicecandidate = e => {
+        if (e.candidate) {
+          roomRef.child("callerCandidates").push(JSON.stringify(e.candidate));
+        }
+      };
+
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      await roomRef.set({ offer: JSON.stringify(offer) });
+
+      roomRef.child("answer").on("value", async snapshot => {
+        const answer = snapshot.val();
+        if (answer && !pc.currentRemoteDescription) {
+          await pc.setRemoteDescription(new RTCSessionDescription(JSON.parse(answer)));
+        }
+      });
+
+      roomRef.child("viewerCandidates").on("child_added", async snapshot => {
+        const data = JSON.parse(snapshot.val());
+        await pc.addIceCandidate(new RTCIceCandidate(data));
+      });
+
+      alert("🔗 Room ID created: " + roomId + "\nShare it with others to let them view your screen.");
+    }
+
+    async function startViewing() {
+      const roomId = document.getElementById("roomId").value.trim();
+      if (!roomId) return alert("Enter a Room ID.");
+
+      pc = new RTCPeerConnection(servers);
+      const roomRef = db.ref('rooms/' + roomId);
+
+      pc.ontrack = (event) => {
+        video.srcObject = event.streams[0];
+      };
+
+      pc.onicecandidate = (e) => {
+        if (e.candidate) {
+          roomRef.child("viewerCandidates").push(JSON.stringify(e.candidate));
+        }
+      };
+
+      const snapshot = await roomRef.child("offer").once("value");
+      if (!snapshot.exists()) return alert("Room ID not found.");
+
+      const offer = JSON.parse(snapshot.val());
+      await pc.setRemoteDescription(new RTCSessionDescription(offer));
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      await roomRef.child("answer").set(JSON.stringify(answer));
+
+      roomRef.child("callerCandidates").on("child_added", async snapshot => {
+        const data = JSON.parse(snapshot.val());
+        await pc.addIceCandidate(new RTCIceCandidate(data));
+      });
+
+      alert("📺 Connected. You are now viewing the shared screen.");
+    }
+  </script>
+</body>
+</html>
